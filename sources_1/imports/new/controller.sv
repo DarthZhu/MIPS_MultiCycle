@@ -41,47 +41,23 @@ module controller(
 endmodule
 
 module maindec(
+    input  logic        clk, reset,
     input  logic [5:0]  op,
-    input  logic [5:0]  funct,
-    output logic        memtoreg, memwrite,
-    output logic        branch, nbranch,
-    output logic        alusrc,
-    output logic        regdst, regwrite,
-    output logic [2:0]  jump, //{jal, jr, j}
-    output logic [2:0]  aluop,
-    output logic        immext
+    // input  logic [5:0]  funct,
+    output logic        pcwrite, memwrite, irwrite, regwrite,
+    output logic        alusrca,
+    output logic        branch,
+    output logic        iord,
+    output logic        memtoreg,
+    output logic        regdst,
+    output logic [1:0]  alusrcb,
+    output logic [1:0]  pcsrc,
+    output logic [1:0]  aluop
     );
+
     logic [3:0]  state, next_state;
     logic [13:0] controls;
-    assign {regwrite, regdst, alusrc, branch, nbranch, memwrite,
-            memtoreg, jump, aluop, immext} = controls;
     
-    // output logic
-    always_comb begin
-        // case(op)                   //  rr_a_bn_mm_jjj_aaa_i
-        //     6'b000000: begin
-        //         case(funct)
-        //             6'b001000: controls <= 14'b00_0_00_00_010_000_0;  // JR
-        //             default:   controls <= 14'b11_0_00_00_000_010_0;  // RTYPE
-        //         endcase
-        //     end
-        //     6'b000010: controls <= 14'b00_0_00_00_001_000_0;  // J
-        //     6'b000011: controls <= 14'b10_1_00_00_101_000_0;  // JAL
-        //     6'b100011: controls <= 14'b10_1_00_01_000_000_0;  // LW
-        //     6'b101011: controls <= 14'b00_1_00_10_000_000_0;  // SW
-        //     6'b000100: controls <= 14'b00_0_10_00_000_001_0;  // BEQ
-        //     6'b000101: controls <= 14'b00_0_01_00_000_001_0;  // BNE
-        //     6'b001000: controls <= 14'b10_1_00_00_000_000_0;  // ADDI
-        //     6'b001100: controls <= 14'b10_1_00_00_000_100_1;  // ANDI
-        //     6'b001101: controls <= 14'b10_1_00_00_000_011_1;  // ORI
-        //     6'b001010: controls <= 14'b10_1_00_00_000_101_0;  // SLTI         
-        //     default:   controls <= 14'bxx_x_xx_xx_xxx_xxx_x;  // illegal op
-        // endcase
-        case (state)
-            
-        endcase
-    end
-
     // reset logic
     always_ff @(posedge clk or posedge reset) begin
         if (reset)
@@ -100,9 +76,8 @@ module maindec(
                     6'b101011: next_state = 4'b0010;    // OP: SW; DECODE -> MEMADR
                     6'b000000: next_state = 4'b0110;    // OP: RTYPE; DECODE -> RTYPEEX
                     6'b000100: next_state = 4'b1000;    // OP: BEQ; DECODE -> BEQEX
-                    6'b000101: next_state = 4'b1001;    // OP: BNQ; DECODE -> BNQEX
-                    6'b001000: next_state = 4'b1010;    // OP: ADDI; DECODE -> ADDIEX
-                    6'b000010: next_state = 4'b1100;    // OP: J; DECODE -> JEX
+                    6'b001000: next_state = 4'b1001;    // OP: ADDI; DECODE -> ADDIEX
+                    6'b000010: next_state = 4'b1011;    // OP: J; DECODE -> JEX
                     default:   next_state = 4'bxxxx;
                 endcase
             end
@@ -119,11 +94,43 @@ module maindec(
             4'b0110: next_state = 4'b0111;              // RTYPEEX -> RTYPEWB
             4'b0111: next_state = 4'b0000;              // RTYPEWB -> FETCH
             4'b1000: next_state = 4'b0000;              // BEQEX -> FETCH
-            4'b1001: next_state = 4'b0000;              // BNQEX -> FETCH
-            4'b1010: next_state = 4'b1011;              // ADDIEX -> ADDIWB
-            4'b1011: next_state = 4'b0000;              // ADDIWB -> FETCH
-            4'b1100: next_state = 4'b0000;              // JEX
+            4'b1001: next_state = 4'b1010;              // ADDIEX -> ADDIWB
+            4'b1010: next_state = 4'b0000;              // ADDIWB -> FETCH
+            4'b1011: next_state = 4'b0000;              // JEX
             default: next_state = 4'bxxxx;
+        endcase
+    end
+
+    // assign output to controls
+    assign {pcwrite,
+            memwrite,
+            irwrite,
+            regwrite, 
+            alusrca,
+            branch,
+            iord,
+            memtoreg,
+            regdst, 
+            alusrcb,
+            pcsrc,
+            aluop} = controls;
+
+    // output logic
+    always_comb begin
+        case (state)
+            4'b0000: controls <= 15'h5010;  // FETCH
+            4'b0001: controls <= 15'h0030;  // DECODE
+            4'b0010: controls <= 15'h0420;  // MEMADR
+            4'b0011: controls <= 15'h0100;  // MEMRD
+            4'b0100: controls <= 15'h0880;  // MEMWB
+            4'b0101: controls <= 15'h2100;  // MEMWR
+            4'b0110: controls <= 15'h0402;  // RTYPEEX
+            4'b0111: controls <= 15'h0840;  // RTYPEWB
+            4'b1000: controls <= 15'h0605;  // BEQEX
+            4'b1001: controls <= 15'h0420;  // ADDIEX
+            4'b1010: controls <= 15'h0800;  // ADDIWB
+            4'b1011: controls <= 15'h4008;  // JEX
+            default: controls <= 15'hxxxx;
         endcase
     end
 endmodule
