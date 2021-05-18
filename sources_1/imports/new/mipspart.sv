@@ -19,6 +19,17 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+module flopr #(parameter WIDTH = 8)(
+    input  logic                clk, reset,
+    input  logic [WIDTH-1 : 0]  d,
+    output logic [WIDTH-1 : 0]  q
+);
+    always_ff @(posedge clk, posedge reset)
+    begin
+        if (reset)   q <= 0;
+        else         q <= d;
+    end
+endmodule
 
 module floprenr #(parameter WIDTH = 8)(
     input  logic                clk, reset,
@@ -30,6 +41,23 @@ module floprenr #(parameter WIDTH = 8)(
     begin
         if (reset)   q <= 0;
         else if (en) q <= d;
+    end
+endmodule
+
+module floprdouble #(parameter WIDTH = 8)(
+    input  logic clk, reset,
+    input  logic [WIDTH-1 : 0] d1, d2,
+    output logic [WIDTH-1 : 0] a, b
+);
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            a <= 0;
+            b <= 0; 
+        end
+        else begin
+            a <= d1;
+            b <= d2;
+        end 
     end
 endmodule
 
@@ -111,4 +139,18 @@ module alu(
             3'b111: result = a < b;
             default: result = 'x;
         endcase
+endmodule
+
+module ander(
+    input  logic a, b,
+    output logic s
+);
+    assign s = a & b;
+endmodule
+
+module orer(
+    input  logic a, b,
+    output logic s
+);
+    assign s = a | b;
 endmodule

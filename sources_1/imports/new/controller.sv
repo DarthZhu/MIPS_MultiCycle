@@ -21,23 +21,25 @@
 
 
 module controller(
-    input  logic [5:0]  op, funct,
+    input  logic        clk, reset,
+    input  logic [5:0]  op,
     input  logic        zero,
-    output logic        memtoreg, memwrite,
-    output logic        pcsrc, alusrc,
-    output logic        regdst, regwrite,
-    output logic [2:0]  jump,
-    output logic [2:0]  alucontrol,
-    output logic        immext
+    output logic        pcwrite, memwrite, irwrite, regwrite,
+    output logic        alusrca,
+    output logic        branch,
+    output logic        iord,
+    output logic        memtoreg, regdst,
+    output logic [1:0]  alusrcb, pcsrc, aluop,
+    output logic [2:0]  alucontrol
     );
 
     logic [2:0] aluop;
     logic       branch, nbranch;
 
-    maindec md(op, funct, memtoreg, memwrite, branch, nbranch, alusrc, regdst, regwrite, jump, aluop, immext);
+    maindec md(clk, reset, op, pcwrite, memwrite, irwrite, regwrite, alusrca, branch, iord, memtoreg, regdst, alusrcb, pcsrc, aluop);
     aludec  ad(funct, aluop, alucontrol);
 
-    assign pcsrc = (branch & zero) | (nbranch & (^zero));
+    // assign pcsrc = branch & zero;
 endmodule
 
 module maindec(
@@ -96,7 +98,7 @@ module maindec(
             4'b1000: next_state = 4'b0000;              // BEQEX -> FETCH
             4'b1001: next_state = 4'b1010;              // ADDIEX -> ADDIWB
             4'b1010: next_state = 4'b0000;              // ADDIWB -> FETCH
-            4'b1011: next_state = 4'b0000;              // JEX
+            4'b1011: next_state = 4'b0000;              // JEX -> FETCH
             default: next_state = 4'bxxxx;
         endcase
     end

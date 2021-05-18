@@ -33,12 +33,12 @@ module top (
     );
 
     logic [31:0] pc, instr, readdata;
-    logic [31:0] writedata,dataadr;
+    logic [31:0] writedata, dataadr, adr, rfrd2;
     logic IOclock, Write;
 
     assign IOclock = ~CLK100MHZ;
-    imem imem(pc[7:2], instr);
-    mips mips(CLK100MHZ, BTNC, pc, instr, Write, dataadr, writedata, readdata);
+    // mem mem(clk, memwrite, adr, rfrd2, readdata);
+    mips mips(CLK100MHZ, BTNC, pc, instr, Write, dataadr, writedata, readdata, adr, rfrd2);
     DataMemoryDecoder dmem(CLK100MHZ, Write, dataadr, writedata, readdata,
                            IOclock, BTNC, BTNL, BTNR, SW, AN, DP, A2G);
 endmodule
