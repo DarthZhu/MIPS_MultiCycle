@@ -23,8 +23,8 @@
 module datapath(
     input  logic        clk, reset, 
     input  logic        pcwrite, memwrite, irwrite, regwrite,
-    input  logic        alusrca, branch, iord, memtoreg, regdst,
-    input  logic [1:0]  alusrcb, pcsrc,
+    input  logic        alusrca, branch, iord,  
+    input  logic [1:0]  memtoreg, regdst, alusrcb, pcsrc,
     input  logic [2:0]  alucontrol,
     output logic        zero,
     output logic [31:0] pc,
@@ -41,8 +41,8 @@ module datapath(
     mux2 #(32)          pcregmux(pc, aluout, iord, adr);
     floprenr #(32)      readdatareg(clk, reset, irwrite, readdata, instr);
     flopr #(32)         rfwdreg(clk, reset, readdata, data);
-    mux2 #(5)           regdstmux(instr[20:16], instr[15:11], regdst, rfwa3);
-    mux2 #(32)          mem2regmux(aluout, data, memtoreg, rfwd3);
+    mux4 #(5)           regdstmux(instr[20:16], instr[15:11], 5'b11111, 'x, regdst, rfwa3);
+    mux4 #(32)          mem2regmux(aluout, data, pc, 'x, memtoreg, rfwd3);
     regfile             rf(clk, regwrite, instr[25:21], instr[20:16], rfwa3, rfwd3, rfrd1, rfrd2);
     floprdouble #(32)   rfreg(clk, reset, rfrd1, rfrd2, a, b);
     signext             se(instr[15:0], signimm);
@@ -51,7 +51,7 @@ module datapath(
     mux4 #(32)          srcbmux(b, 4, signimm, signimmsh, alusrcb, srcb);
     alu                 alu(srca, srcb, alucontrol, aluresult, zero);
     flopr #(32)         resreg(clk, reset, aluresult, aluout);
-    mux4 #(32)          pcsrcreg(aluresult, aluout, {pc[31:28], instr[25:0], 2'b00}, 'x, pcsrc, pcnext);
+    mux4 #(32)          pcsrcreg(aluresult, aluout, {pc[31:28], instr[25:0], 2'b00}, a, pcsrc, pcnext);
     ander               ad(branch, zero, ifbranch);
     orer                oe(pcwrite, ifbranch, pcen);
 endmodule

@@ -27,8 +27,8 @@ module mips(
     output logic [31:0] adr, b
     );
 
-    logic zero, pcwrite, irwrite, regwrite, alusrca, branch, iord, memtoreg, regdst;
-    logic [1:0] alusrcb, pcsrc;
+    logic zero, pcwrite, irwrite, regwrite, alusrca, branch, iord;
+    logic [1:0] alusrcb, pcsrc, regdst, memtoreg;
     logic [2:0] alucontrol;
     logic [31:0] instr;
 
