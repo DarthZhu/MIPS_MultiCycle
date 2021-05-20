@@ -44,7 +44,7 @@ module DataMemoryDecoder(
 
     IO io(IOclock, reset, pRead, pWrite, addr[3:2], writeData, preadData,
           btnL, btnR, switch, led);
-    mem dmem(clk, mWrite, addr, writeData, mreadData);
+    mem mem(clk, writeEN, addr, writeData, mreadData);
     assign readData = (addr[7] == 1'b1) ? preadData : mreadData;    
     mux7seg sg(IOclock, reset, {switch, 4'b0000, led}, AN, DP, A2G);
     

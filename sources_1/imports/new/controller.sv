@@ -23,13 +23,14 @@
 module controller(
     input  logic        clk, reset,
     input  logic [5:0]  op,
+    input  logic [5:0]  funct,
     input  logic        zero,
     output logic        pcwrite, memwrite, irwrite, regwrite,
     output logic        alusrca,
     output logic        branch,
     output logic        iord,
     output logic        memtoreg, regdst,
-    output logic [1:0]  alusrcb, pcsrc, aluop,
+    output logic [1:0]  alusrcb, pcsrc,
     output logic [2:0]  alucontrol
     );
 
@@ -38,14 +39,11 @@ module controller(
 
     maindec md(clk, reset, op, pcwrite, memwrite, irwrite, regwrite, alusrca, branch, iord, memtoreg, regdst, alusrcb, pcsrc, aluop);
     aludec  ad(funct, aluop, alucontrol);
-
-    // assign pcsrc = branch & zero;
 endmodule
 
 module maindec(
     input  logic        clk, reset,
     input  logic [5:0]  op,
-    // input  logic [5:0]  funct,
     output logic        pcwrite, memwrite, irwrite, regwrite,
     output logic        alusrca,
     output logic        branch,
@@ -54,11 +52,11 @@ module maindec(
     output logic        regdst,
     output logic [1:0]  alusrcb,
     output logic [1:0]  pcsrc,
-    output logic [1:0]  aluop
+    output logic [2:0]  aluop
     );
 
     logic [3:0]  state, next_state;
-    logic [13:0] controls;
+    logic [15:0] controls;
     
     // reset logic
     always_ff @(posedge clk or posedge reset) begin
@@ -80,6 +78,7 @@ module maindec(
                     6'b000100: next_state = 4'b1000;    // OP: BEQ; DECODE -> BEQEX
                     6'b001000: next_state = 4'b1001;    // OP: ADDI; DECODE -> ADDIEX
                     6'b000010: next_state = 4'b1011;    // OP: J; DECODE -> JEX
+                    6'b001100: next_state = 4'b1100;    // OP: ANDI; DECODE -> ANDIEX
                     default:   next_state = 4'bxxxx;
                 endcase
             end
@@ -99,6 +98,8 @@ module maindec(
             4'b1001: next_state = 4'b1010;              // ADDIEX -> ADDIWB
             4'b1010: next_state = 4'b0000;              // ADDIWB -> FETCH
             4'b1011: next_state = 4'b0000;              // JEX -> FETCH
+            4'b1100: next_state = 4'b1101;              // ANDIEX -> ANDIWB
+            4'b1101: next_state = 4'b0000;              // ANDIWB -> FETCH
             default: next_state = 4'bxxxx;
         endcase
     end
@@ -120,19 +121,21 @@ module maindec(
     // output logic
     always_comb begin
         case (state)
-            4'b0000: controls <= 15'h5010;  // FETCH
-            4'b0001: controls <= 15'h0030;  // DECODE
-            4'b0010: controls <= 15'h0420;  // MEMADR
-            4'b0011: controls <= 15'h0100;  // MEMRD
-            4'b0100: controls <= 15'h0880;  // MEMWB
-            4'b0101: controls <= 15'h2100;  // MEMWR
-            4'b0110: controls <= 15'h0402;  // RTYPEEX
-            4'b0111: controls <= 15'h0840;  // RTYPEWB
-            4'b1000: controls <= 15'h0605;  // BEQEX
-            4'b1001: controls <= 15'h0420;  // ADDIEX
-            4'b1010: controls <= 15'h0800;  // ADDIWB
-            4'b1011: controls <= 15'h4008;  // JEX
-            default: controls <= 15'hxxxx;
+            4'b0000: controls = 16'b1010000000100000;  // FETCH
+            4'b0001: controls = 16'b0000000001100000;  // DECODE
+            4'b0010: controls = 16'b0000100001000000;  // MEMADR
+            4'b0011: controls = 16'b0000001000000000;  // MEMRD
+            4'b0100: controls = 16'b0001000100000000;  // MEMWB
+            4'b0101: controls = 16'b0100001000000000;  // MEMWR
+            4'b0110: controls = 16'b0000100000000010;  // RTYPEEX
+            4'b0111: controls = 16'b0001000010000000;  // RTYPEWB
+            4'b1000: controls = 16'b0000110000001001;  // BEQEX
+            4'b1001: controls = 16'b0000100001000000;  // ADDIEX
+            4'b1010: controls = 16'b0001000000000000;  // ADDIWB
+            4'b1011: controls = 16'b1000000000010000;  // JEX
+            4'b1100: controls = 16'b0000100001000100;  // ANDIEX
+            4'b1101: controls = 16'b0001000000000000;  // ANDIWB
+            default: controls = 16'hxxxx;
         endcase
     end
 endmodule
